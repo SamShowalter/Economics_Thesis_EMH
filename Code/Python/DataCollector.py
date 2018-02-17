@@ -1,7 +1,6 @@
 import pandas as pd 
 import numpy as np 
 import datetime as dt
-import os
 import quandl
 
 
@@ -12,7 +11,7 @@ import quandl
 quandl.ApiConfig.api_key = 'N1j_H8avpLu-8zwvDdsH'
 
 #TODO: Create a logger function to connect transaction output for the projects output.
-class StockCollectionRecord():
+class StockCollector():
 
 	#Record for Collection
 	def __init__(self, securityName, startDate, endDate, trendSpecific = False):
@@ -36,8 +35,12 @@ class StockCollectionRecord():
 			if trendSpecific:
 				self.convertToTrendSpecific()
 
+			self.securityDF.drop(['adj_open','adj_high','adj_low'], axis = 1, inplace = True)
+
 		except Exception as e:
 			print("\nERROR: Data pull failed:\n" + str(e)+"\n")
+			# Record the error message where the stock ticker would be
+			self.StockTicker = str(e)
 			self.ActualDateStart = -1
 			self.ActualDateEnd = -1
 			self.NumRows = -1
@@ -46,9 +49,6 @@ class StockCollectionRecord():
 			self.PullDuration = -1
 			self.securityDF = -1
 			self.StatusMessage = "FAILURE"
-			
-
-		
 
 
 	# Initial API call to gain all security prices. 
@@ -169,14 +169,14 @@ class StockCollectionRecord():
 
 	def addCommodityChannelIndex(self):
 		typical_price = (self.securityDF.adj_close + self.securityDF.adj_high + self.securityDF.adj_low) / 3
-		Constant = 0.15
+		Constant = 0.015
 
 		rolling_mean_TP_20D = pd.rolling_mean(typical_price,20)
 		mean_deviation = abs(typical_price - rolling_mean_TP_20D)
 		rolling_mean_MD = pd.rolling_mean(mean_deviation,20)
 
 		# 0.015 is apparently the customary constant here, as seen in literature
-		self.securityDF['20D_CCI'] = (typical_price - rolling_mean_TP_20D) / (0.015 * rolling_mean_MD)
+		self.securityDF['20D_CCI'] = (typical_price - rolling_mean_TP_20D) / (Constant * rolling_mean_MD)
 
 
 	# Adds technical attributes to an existing dataset
@@ -198,7 +198,7 @@ class StockCollectionRecord():
 		self.addDailyMomentum()
 		self.NumCols = len(self.securityDF.columns)
 		self.NumNaNRecords = max(self.securityDF.isnull().sum())
-		#self.securityDF.dropna(inplace = True)
+		self.securityDF.dropna(inplace = True)
 
 		# Duration of API pull captured
 		API_time_end = dt.datetime.utcnow()
@@ -215,6 +215,7 @@ class StockCollectionRecord():
 
 	# May do this later, once more of the model is built.
 	def convertToTrendSpecific(self):
+
 		# Add trend specific for moving averages
 		self.securityDF['10D_mavg'] = np.where(self.securityDF['10D_mavg'] < self.securityDF.adj_close, 1, -1)
 		self.securityDF['10D_Wmavg'] = np.where(self.securityDF['10D_Wmavg'] < self.securityDF.adj_close, 1, -1)
@@ -231,10 +232,14 @@ class StockCollectionRecord():
 		self.securityDF['14D_stock_Rperc'] = self.convertWithBounds(self.securityDF['14D_stock_Rperc'],-80,-20)
 		self.securityDF['14D_RSI'] = self.convertWithBounds(self.securityDF['14D_RSI'],30,70)
 
+		# Drop non-trending columns
+		self.securityDF.drop(['adj_volume','adj_close'], axis = 1, inplace = True)
+
 		#Change the time log for variable
 		# Duration of API pull captured
 		API_time_end = dt.datetime.utcnow()
 		self.PullDuration = (API_time_end - self.utcDateTimeStart).total_seconds()
+
 		
 
 
