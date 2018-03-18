@@ -242,20 +242,21 @@ for index in index_list:
 		try:
 
 			t1 = Test(MasterLog,
-				  StockCollector(index, "1988-01-01", "2018-01-01"),
+				  StockCollector(index, "1988-01-01", "2018-01-01", trendSpecific = True),
 				  Modeler(
 				  		  test_period_size = 1,
 				  		  specific_model = "RF",
-				  		  n_estimators = 140, 
+				  		  n_estimators = i*20, 
+				  		  n_neighbors = 20,
 				  		  SVM_params = ('rbf',1,'auto'),
-				  		  test_period_num = 'max'),
+				  		  test_period_num = 2520),		#ten years
 				  trader = Trader(50000),
 				  remoteServer = True)
 
 
 			sendProgressEmail("Index " + index.replace(".csv","") + " Full Run", "The script ran successfully and has stored " + index.replace(".csv","") + " stock data!\n" +
-		  					  "This ran random forest specifically for " + str(i*20) + " trees over a period of 20 years.\n" +
-		  					  "This data was also traded on to see if any returns were better than the market.\n" +
+		  					  "This ran Random Forest specifically for " + str(i*20) + " trees over a period of 10 years.\n" +
+		  					  "This data was also traded on to see if any returns were better than the market and used trending\n" +
 		  					  "The program took " + str(t1.TestDuration) + " seconds to finish.")
 
 		except Exception as e:

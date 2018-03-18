@@ -308,7 +308,6 @@ class Modeler():
 	Negative precision as a function of True Negative and False Positive
 	'''
 	def negRecall(self,TN, FP):
-		
 		try:
 			return TN / (TN + FP)
 		except:

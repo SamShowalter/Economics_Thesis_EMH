@@ -63,12 +63,14 @@ class StockCollector():
 			#Drop un-used columns
 			self.SecurityDF.drop(['adj_open','adj_high','adj_low'], axis = 1, inplace = True)
 
-			#Shifts adjusted price, volume, and momentum so you are predicting the correct day
+			#Shifts adjusted price, volume, and momentum so you are predicting the next day
 			#MUST have a trade period of only one day
 			self.SecurityDF.index = self.SecurityDF.index.shift(1, freq = "D")
 			self.SecurityDF.dly_momentum = self.SecurityDF.dly_momentum.shift(-1)
 			self.SecurityDF.adj_close = self.SecurityDF.adj_close.shift(-1)
 			self.SecurityDF.adj_volume = self.SecurityDF.adj_close.shift(-1)
+			
+			#Drop lost record because of shifting and convert label field
 			self.SecurityDF.dropna(inplace = True)
 			self.SecurityDF.dly_momentum = self.SecurityDF.dly_momentum.astype(bool)
 
